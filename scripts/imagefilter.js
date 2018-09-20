@@ -1,12 +1,22 @@
 $(document).on("ready",function(){
   $("#file").on('change',function(){
     img1 = loadImage(window.URL.createObjectURL(document.getElementById("file").files[0]),function(){
-      myCanvas =createCanvas(img1.width,img1.height);
+      if (img1.width >= 800){
+        var sfactor = img1.width/800 
+        myCanvas =createCanvas(800, img1.height/sfactor);
+        cWidth=800;
+        cHeight = img1.height/sfactor;
+      }
+      else {
+         myCanvas =createCanvas(img1.width,img1.height);
+        cWidth=  img1.width;
+        cHeight = img1.height;
+      }
+     
       myCanvas.parent('imageDisplay');
-      cWidth=  img1.width;
-      cHeight = img1.height;
+      
       d = pixelDensity();
-      image(img1,0,0)
+      image(img1,0,0, cWidth, cHeight)
       loadPixels();
     });
     
@@ -90,8 +100,10 @@ function ind(x,y){
   return (y*d*cWidth + x)*d*4;
 }
 
-function changePixels3(filter){
-  if (!filter){
+function changePixels3(filter_mode){
+  filter(GRAY);
+  loadPixels();
+  if (!filter_mode){
     filter = "smooth"
   }
   var pixelsCopy = JSON.parse(JSON.stringify(pixels));
@@ -99,7 +111,7 @@ function changePixels3(filter){
     for (j=0;j<=cHeight;j+=1){
       //var loc = [ind(k,j-1),ind(k-1,j),ind(k,j),ind(k+1,j),ind(k,j+1)];
       var loc = [ind(k-1,j-1),ind(k,j-1),ind(k+1,j-1),ind(k-1,j),ind(k,j),ind(k+1,j),ind(k-1,j+1),ind(k,j+1),ind(k+1,j+1)];
-      var rgb = smoothAvg3(k,j,pixels,filter)
+      var rgb = smoothAvg3(k,j,pixels,filter_mode)
       pixelsCopy[loc[4]]= rgb[0];
       pixelsCopy[loc[4]+1]= rgb[1]
       pixelsCopy[loc[4]+2]= rgb[2]
@@ -109,20 +121,21 @@ function changePixels3(filter){
   }
   copyTo(pixelsCopy,pixels)
   updatePixels();
-  console.log("Completed 3x3 " +  filter)
+  console.log("Completed 3x3 " +  filter_mode)
 }
-function smoothAvg3(x,y,data,filter){
+function smoothAvg3(x,y,data,filter_mode){
   var loc =  [ind(x-1,y-1),ind(x,y-1),ind(x+1,y-1),ind(x-1,y),ind(x,y),ind(x+1,y),ind(x-1,y+1),ind(x,y+1),ind(x+1,y+1)];
   var weight = [1,1,1,
                 1,1,1,
                 1,1,1];
-  weight = operator3[filter].arr;
+  weight = operator3[filter_mode].arr;
   var colors = [0,0,0]
   var totalWeight = 1;
   
-  if (operator3[filter].type == 'blur'){
+  if (operator3[filter_mode].type == 'blur'){
     totalWeight = weight.reduce((acc,curr)=> acc+abs(curr));
   }
+  
   for (i=0;i<loc.length;i++){
     colors[0]+=data[loc[i]]*weight[i]
     colors[1]+=data[loc[i]+1]*weight[i]
